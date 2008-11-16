@@ -101,6 +101,12 @@ void GLSurface::resizeGL (int w, int h)/*{{{*/
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     glOrtho(0, w, 0, h, 1, -1);
+
+    if (image_position.x() == 0 && image_position.y() == 0) {
+        image_position.setX(0.5 * w);
+        image_position.setY(0.5 * h);
+    }
+
 }/*}}}*/
 void GLSurface::paintGL ()/*{{{*/
 {
@@ -131,6 +137,8 @@ void GLSurface::paintGL ()/*{{{*/
     glMatrixMode(GL_MODELVIEW);
     glTranslatef(image_position.x(), image_position.y(), 0.0f);
     glScalef(scale, scale, 1.0f);
+    glTranslatef(-0.5f * image_size.width(),
+                 -0.5f * image_size.height(), 0.0f);
     glColor3f(1.0f, 1.0f, 1.0f);
     glBindTexture(GL_TEXTURE_2D, tex_id);
     glBegin(GL_QUADS);
