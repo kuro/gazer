@@ -9,11 +9,16 @@
 
 #include <QtCore>
 #include <QMouseEvent>
+#include <QMainWindow>
+#include <QStatusBar>
 
 #include <ImfRgbaFile.h>
 #include <ImfArray.h>
 #include <ImfTestFile.h>
+
 #include <apr_pools.h>
+
+#include <Cg/cgGL.h>
 /*}}}*/
 
 struct Color/*{{{*/
@@ -47,10 +52,13 @@ GLSurface::GLSurface () :/*{{{*/
     pool(NULL),
     image_size(0, 0),
     image_position(0, 0),
-    scale(1.0f)
+    scale(1.0f),
+    use_shader(true)
 {
     apr_pool_create(&pool, NULL);
     setFocusPolicy(Qt::StrongFocus);
+
+    tmapr.exposure = 1.1f;
 }/*}}}*/
 GLSurface::~GLSurface ()/*{{{*/
 {
@@ -68,6 +76,21 @@ void GLSurface::initializeGL ()/*{{{*/
     glEnable(GL_TEXTURE_2D);
 
     GLERRCHK();
+
+/* cg {{{*/
+    cg_context = cgCreateContext();
+    cg_fragment_profile = cgGLGetLatestProfile(CG_GL_FRAGMENT);
+    cgGLSetOptimalOptions(cg_fragment_profile);
+    cg_fragment_program = cgCreateProgramFromFile(cg_context, CG_SOURCE,
+                                         "media/shaders/tonemap.cg",
+                                         cg_fragment_profile, "tonemap", NULL);
+    cgGLLoadProgram(cg_fragment_program);
+
+    cg_params.scene_tex = cgGetNamedParameter(cg_fragment_program, "scene_tex");
+    cg_params.exposure = cgGetNamedParameter(cg_fragment_program,
+                                             "tmapr.exposure");
+/*}}}*/
+
 }/*}}}*/
 void GLSurface::resizeGL (int w, int h)/*{{{*/
 {
@@ -96,6 +119,15 @@ void GLSurface::paintGL ()/*{{{*/
         glScalef(1.0f, -1.0f, 1.0f);
     }
 
+
+    if (use_shader) {
+        cgGLEnableProfile(cg_fragment_profile);
+        cgGLBindProgram(cg_fragment_program);
+
+        cgGLSetTextureParameter(cg_params.scene_tex, tex_id);
+        cgGLSetParameter1f(cg_params.exposure, tmapr.exposure);
+    }
+
     glMatrixMode(GL_MODELVIEW);
     glTranslatef(image_position.x(), image_position.y(), 0.0f);
     glScalef(scale, scale, 1.0f);
@@ -107,6 +139,10 @@ void GLSurface::paintGL ()/*{{{*/
     glTexCoord2f(1.0f,1.0f);glVertex2f(image_size.width(), image_size.height());
     glTexCoord2f(0.0f,1.0f);glVertex2f(0.0f              , image_size.height());
     glEnd();
+
+    if (use_shader) {
+        cgGLDisableProfile(cg_fragment_profile);
+    }
 
     GLERRCHK();
 }/*}}}*/
@@ -197,25 +233,56 @@ void GLSurface::mouseMoveEvent (QMouseEvent* evt)/*{{{*/
 }/*}}}*/
 void GLSurface::wheelEvent (QWheelEvent* evt)/*{{{*/
 {
-#if 0
     int degs = evt->delta() / 8;
     int steps = degs / 15;
+
+#if 0
     scale += 0.1 * steps;
-    updateGL();
 #endif
+
+    if (use_shader) {
+        tmapr.exposure += 0.1 * steps;
+        showMessage(QString("Exposure %1").arg(tmapr.exposure));
+    }
+
+    updateGL();
 }/*}}}*/
 void GLSurface::keyPressEvent (QKeyEvent* evt)/*{{{*/
 {
     switch (evt->key()) {
     case '-':
         scale -= 0.1f;
+        showMessage(QString("Zoom %1%").arg(scale*100));
         break;
     case '+':
     case '=':
         scale += 0.1f;
+        showMessage(QString("Zoom %1%").arg(scale*100));
+        break;
+    case 'S':
+        use_shader = ! use_shader;
+        showMessage(QString("Shader %1").arg((use_shader ? "on" : "off")));
+        break;
+    case '[':
+        if (use_shader) {
+            tmapr.exposure -= 0.1f;
+            showMessage(QString("Exposure %1").arg(tmapr.exposure));
+        }
+        break;
+    case ']':
+        if (use_shader) {
+            tmapr.exposure += 0.1f;
+            showMessage(QString("Exposure %1").arg(tmapr.exposure));
+        }
         break;
     }
     updateGL();
 }/*}}}*/
+
+void GLSurface::showMessage (const QString& message, int timeout)
+{
+    reinterpret_cast<QMainWindow*>(parent()) \
+        ->statusBar()->showMessage(message, timeout);
+}
 
 // vim: sw=4 fdm=marker

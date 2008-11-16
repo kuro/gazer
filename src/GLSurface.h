@@ -9,6 +9,8 @@
 #include <GL/glew.h>  // include before gl.h
 #include <QGLWidget>
 
+#include <Cg/cg.h>
+
 struct apr_pool_t;
 
 class GLSurface : public QGLWidget
@@ -24,6 +26,20 @@ protected:
     QPointF image_position;
     QPointF prev_mouse_point;
     float scale;
+
+    bool use_shader;
+    CGcontext cg_context;
+    CGprofile cg_fragment_profile;
+    CGprogram cg_fragment_program;
+
+    struct {
+        CGparameter scene_tex;
+        CGparameter exposure;
+    } cg_params;
+
+    struct {
+        float exposure;
+    } tmapr;
 
 public:
     GLSurface ();
@@ -41,6 +57,9 @@ protected:
     virtual void mouseMoveEvent (QMouseEvent* evt);
     virtual void wheelEvent (QWheelEvent* evt);
     virtual void keyPressEvent (QKeyEvent* evt);
+
+private:
+    void showMessage (const QString& message, int timeout = 0);
 };
 
 // vim: sw=4 fdm=marker

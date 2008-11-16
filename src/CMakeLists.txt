@@ -46,5 +46,5 @@ target_link_libraries(gazer
     ${APR_LIBRARIES}
     ${OPENEXR_LIBRARIES}
     ${GLEW_LIBRARIES}
+    ${CG_LIBRARIES}
     )
-

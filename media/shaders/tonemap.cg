@@ -1,0 +1,34 @@
+
+struct tonemapper
+{
+    float exposure;
+    float bright_threshold;  // e.g. 1.2
+    float gamma;             // e.g. 2.2
+};
+
+float4 tonemap (
+    float2 tex_coord : TEXCOORD0,
+    uniform sampler2D scene_tex,
+    uniform tonemapper tmapr
+    ) : COLOR
+{
+#ifndef NO_DEFAULT_BRIGHT_THRESHOLD
+    tmapr.bright_threshold = 1.2;
+#endif
+#ifndef NO_DEFAULT_GAMMA
+    tmapr.gamma            = 1.0;
+#endif
+
+    float4 c;
+    c = tex2D(scene_tex, tex_coord);
+
+    float yd = tmapr.exposure * (tmapr.exposure / tmapr.bright_threshold + 1.0)
+               / (tmapr.exposure + 1.0);
+    c *= yd;
+
+    c = pow(c, float4(1.0 / tmapr.gamma));
+
+    c.a = 1.0;
+
+    return c;
+}
