@@ -13,6 +13,7 @@
 #include <QMenuBar>
 #include <QStatusBar>
 #include <QFileDialog>
+#include <QApplication>
 /*}}}*/
 
 MainWindow::MainWindow() :/*{{{*/
