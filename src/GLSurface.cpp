@@ -4,8 +4,13 @@
  * @brief GLSurface implementation
  */
 
+#define DCRAW_4 1
+
 /* includes {{{*/
 #include "GLSurface.moc"
+
+#include <gas/swap.h>
+#include <assert.h>
 
 #include <QtCore>
 #include <QMouseEvent>
@@ -168,6 +173,8 @@ void GLSurface::load_image (QImage& image)/*{{{*/
 }/*}}}*/
 void GLSurface::load_image (const QString& fname)/*{{{*/
 {
+
+/* try OpenEXR {{{*/
     if (fname.endsWith("exr")) {
 
         if ( ! Imf::isOpenExrFile(qPrintable(fname))) {
@@ -218,10 +225,96 @@ void GLSurface::load_image (const QString& fname)/*{{{*/
                               GL_RGBA, GL_FLOAT, fpix);
             apr_pool_clear(pool);
         }
-    } else {
-        QImage img (fname);
-        load_image(img);
+        return;
     }
+/*}}}*/
+
+/* try dcraw {{{*/
+    QProcess dcraw (this);
+    QStringList args;
+    args << "-i" << qPrintable(fname);
+    dcraw.start("dcraw", args);
+    if (dcraw.waitForStarted()) {
+        dcraw.waitForFinished();
+        if (dcraw.exitCode() == 0) {
+            args.clear();
+            args << "-c";
+
+#if 1
+            args << "-w";  // camera white balance
+#else
+            args << "-a";  // whole image average white balance
+#endif
+
+#if DCRAW_4
+            args << "-4";
+#endif
+            args << qPrintable(fname);
+            dcraw.start("dcraw", args);
+            if (dcraw.waitForStarted()) {
+                dcraw.waitForReadyRead();
+
+                QString ppm_type = dcraw.readLine().trimmed();
+                assert(ppm_type == "P6");
+                QByteArray line = dcraw.readLine().trimmed();
+                QList<QByteArray> wh = line.split(' ');
+                int w = wh[0].toInt();
+                int h = wh[1].toInt();
+                image_size = QSize(w, h);
+#if DCRAW_4
+                qint64 byte_size = w * h * sizeof(quint16) * 3;
+#else
+                qint64 byte_size = w * h * sizeof(quint8) * 3;
+#endif
+                quint16* pixels = (quint16*)apr_palloc(pool, byte_size);
+
+                dcraw.waitForFinished();
+                int max = dcraw.readLine().trimmed().toInt();
+#if DCRAW_4
+                assert(max == 0xffff);
+#else
+                assert(max == 0xff);
+#endif
+                qint64 bytes_read = dcraw.read((char*)pixels, byte_size);
+                if (bytes_read != byte_size) {
+                    qDebug() << "failed to read" << byte_size;
+                }
+
+                assert(dcraw.atEnd() == true);
+
+#if DCRAW_4
+                gas_swap(pixels, sizeof(quint16), byte_size);
+#endif
+
+                glBindTexture(GL_TEXTURE_2D, tex_id);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                                GL_LINEAR_MIPMAP_LINEAR);
+                GLenum type = 0;
+#if DCRAW_4
+                type = GL_UNSIGNED_SHORT;
+#else
+                type = GL_UNSIGNED_BYTE;
+#endif
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F_ARB,
+                             image_size.width(), image_size.height(),
+                             0, GL_RGB, type, pixels);
+                glGenerateMipmapEXT(GL_TEXTURE_2D);
+                apr_pool_clear(pool);
+
+                flip_y = true;
+
+                return;
+            } else {
+                qDebug() << "dcraw didn't start again";
+            }
+        }
+    }
+/*}}}*/
+
+    QImage img (fname);
+    load_image(img);
+
 }/*}}}*/
 
 void GLSurface::mousePressEvent (QMouseEvent* evt)/*{{{*/

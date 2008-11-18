@@ -11,6 +11,8 @@ find_library(CG_LIBRARY Cg)
 find_library(CG_GL_LIBRARY CgGL)
 set(CG_LIBRARIES ${CG_LIBRARY} ${CG_GL_LIBRARY})
 
+find_path(GAS_INCLUDE_DIRS gas/gas.h)
+find_library(GAS_LIBRARIES gas)
 
 set(
     headers
@@ -35,6 +37,7 @@ include_directories(
     ${QT_QTOPENGL_INCLUDE_DIR}
     ${APR_INCLUDE_DIRS}
     ${OPENEXR_INCLUDE_DIRS}
+    ${GAS_INCLUDE_DIRS}
     )
 
 add_executable(gazer ${headers} ${sources})
@@ -47,4 +50,5 @@ target_link_libraries(gazer
     ${OPENEXR_LIBRARIES}
     ${GLEW_LIBRARIES}
     ${CG_LIBRARIES}
+    ${GAS_LIBRARIES}
     )
