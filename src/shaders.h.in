@@ -1,0 +1,4 @@
+
+#pragma once
+
+char tonemap_shader_source[] = @tonemap_shader_source@;

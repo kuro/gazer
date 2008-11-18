@@ -24,6 +24,9 @@
 #include <apr_pools.h>
 
 #include <Cg/cgGL.h>
+
+#include "shaders.h"
+
 /*}}}*/
 
 struct Color/*{{{*/
@@ -86,9 +89,9 @@ void GLSurface::initializeGL ()/*{{{*/
     cg_context = cgCreateContext();
     cg_fragment_profile = cgGLGetLatestProfile(CG_GL_FRAGMENT);
     cgGLSetOptimalOptions(cg_fragment_profile);
-    cg_fragment_program = cgCreateProgramFromFile(cg_context, CG_SOURCE,
-                                         "media/shaders/tonemap.cg",
-                                         cg_fragment_profile, "tonemap", NULL);
+    cg_fragment_program = cgCreateProgram(cg_context, CG_SOURCE,
+                                          tonemap_shader_source,
+                                          cg_fragment_profile, "tonemap", NULL);
     cgGLLoadProgram(cg_fragment_program);
 
     cg_params.scene_tex = cgGetNamedParameter(cg_fragment_program, "scene_tex");
