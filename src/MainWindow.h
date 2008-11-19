@@ -15,8 +15,8 @@
  */
 
 /**
- * @file GazerWindow.h
- * @brief GazerWindow definition
+ * @file MainWindow.h
+ * @brief MainWindow definition
  */
 
 #pragma once

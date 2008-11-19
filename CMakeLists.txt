@@ -17,4 +17,4 @@ string(
     )
 configure_file(src/shaders.h.in ${CMAKE_CURRENT_BINARY_DIR}/src/shaders.h)
 
-subdirs(src)
+subdirs(src doc)
