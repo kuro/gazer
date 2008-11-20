@@ -25,11 +25,15 @@
 #include <QSettings>
 
 class QAction;
+class QTreeWidget;
+class QTreeWidgetItem;
 class GLSurface;
 
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
+
+    friend class GLSurface;
 
 private:
 
@@ -43,9 +47,17 @@ private:
 
     GLSurface* surface;
 
+    QTreeWidget* tree_widget;
+    QStringList file_list;
+    int file_index;
+
 public:
     MainWindow();
     virtual ~MainWindow();
+
+    void set_file_list(const QStringList& list, int new_index = 0);
+    void go (int index);
+    void next (int direction = 1);
 
 private:
     void create_actions(void);
@@ -55,6 +67,8 @@ private slots:
     void open ();
     void quit ();
     void about_to_quit ();
+
+    void current_item_changed (QTreeWidgetItem* item, QTreeWidgetItem* prev);
 };
 
 // vim: sw=4 fdm=marker

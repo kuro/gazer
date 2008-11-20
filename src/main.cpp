@@ -36,6 +36,12 @@ int main (int argc, char **argv)/*{{{*/
     MainWindow win;
     win.show();
 
+    QStringList file_list;
+    for (int i = 1; i < argc; i++) {
+        file_list << argv[i];
+    }
+    win.set_file_list(file_list);
+
     return app.exec();
 }/*}}}*/
 

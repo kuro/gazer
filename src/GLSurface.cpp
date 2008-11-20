@@ -23,6 +23,7 @@
 
 /* includes {{{*/
 #include "GLSurface.moc"
+#include "MainWindow.h"
 
 #include <gas/swap.h>
 #include <assert.h>
@@ -188,6 +189,7 @@ void GLSurface::load_image (QImage& image)/*{{{*/
     tex_id = bindTexture(image, GL_TEXTURE_2D, GL_RGBA16F_ARB);
 
     flip_y = false;
+    updateGL();
 }/*}}}*/
 void GLSurface::load_image (const QString& fname)/*{{{*/
 {
@@ -243,6 +245,7 @@ void GLSurface::load_image (const QString& fname)/*{{{*/
                               GL_RGBA, GL_FLOAT, fpix);
             apr_pool_clear(pool);
         }
+        updateGL();
         return;
     }
 /*}}}*/
@@ -322,6 +325,7 @@ void GLSurface::load_image (const QString& fname)/*{{{*/
 
                 flip_y = true;
 
+                updateGL();
                 return;
             } else {
                 qDebug() << "dcraw didn't start again";
@@ -359,12 +363,16 @@ void GLSurface::wheelEvent (QWheelEvent* evt)/*{{{*/
     scale += 0.1 * steps;
 #endif
 
-    if (use_shader) {
-        tmapr.exposure += 0.1 * steps;
-        showMessage(QString("Exposure %1").arg(tmapr.exposure));
-    }
+//    if (use_shader) {
+//        tmapr.exposure += 0.1 * steps;
+//        showMessage(QString("Exposure %1").arg(tmapr.exposure));
+//    }
+//
+//    updateGL();
 
-    updateGL();
+
+    reinterpret_cast<MainWindow*>(parent())->next(steps * -1);
+
 }/*}}}*/
 void GLSurface::keyPressEvent (QKeyEvent* evt)/*{{{*/
 {
@@ -398,10 +406,10 @@ void GLSurface::keyPressEvent (QKeyEvent* evt)/*{{{*/
     updateGL();
 }/*}}}*/
 
-void GLSurface::showMessage (const QString& message, int timeout)
+void GLSurface::showMessage (const QString& message, int timeout)/*{{{*/
 {
     reinterpret_cast<QMainWindow*>(parent()) \
         ->statusBar()->showMessage(message, timeout);
-}
+}/*}}}*/
 
 // vim: sw=4 fdm=marker
